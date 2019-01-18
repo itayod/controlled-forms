@@ -1,0 +1,11 @@
+{
+  "$schema": "../node_modules/@angular-devkit/schematics/collection-schema.json",
+  "extends": ["@schematics/angular"],
+  "schematics": {
+    "controlled-forms-field": {
+      "description": "A blank schematic.",
+      "factory": "./al-forms-field/index",
+      "schema": "./controlled-forms-field/schema.json"
+    }
+  }
+}

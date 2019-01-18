@@ -1,0 +1,18 @@
+{
+  "name": "ng-controlled-forms",
+  "description": "controlled forms lib for angular",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/common": "^7.2.0",
+    "@angular/core": "^7.2.0"
+  },
+  "keywords": [
+    "ngrx",
+    "angular",
+    "redux",
+    "forms",
+    "controlled"
+  ],
+  "author": "Itay Oded <itayoded1@gmail.com>",
+  "license": "MIT"
+}

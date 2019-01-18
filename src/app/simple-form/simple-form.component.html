@@ -1,0 +1,95 @@
+<!--<h1>input</h1>-->
+<!--<div>-->
+<!--<button (click)="saveInputToLocalStorage()">save</button>-->
+<!--<input ctrlFormField (valueChanged)="inputValChanged($event)" [fieldValue]="input">-->
+<!--</div>-->
+<!--<br>-->
+
+<h1>form</h1>
+<button (click)="saveToLocalStorage()">save</button>
+<div >
+
+  <div ctrlFormGroup
+       (valueChanged)="formValueChanged($event)"
+       [fieldValue]="form"
+       (errorsChanged)="errorChanged($event)"
+  >
+    <div>
+      sliderrrr
+      <app-custom-mat-slider ctrlFormField="sliderrr"
+                            [validators]="validators2">
+      </app-custom-mat-slider>
+    </div>
+
+    <div>
+      <h5>custom input</h5>
+      <app-custom-field ctrlFormField="customInput">
+      </app-custom-field>
+    </div>
+
+    <div>
+      <h5>first name</h5>
+      <input ctrlFormField="firstName"
+             [validators]="validators">
+    </div>
+
+    <div>
+      <h5>last name</h5>
+      <input ctrlFormField="lastName">
+    </div>
+
+    <div>
+      <h5>title</h5>
+      <textarea ctrlFormField="title"
+                [fieldValue]="form.title | titlecase"></textarea>
+    </div>
+
+    <div>
+      <h5>city</h5>
+      <select ctrlFormField="city">
+        <option *ngFor="let city of cities" [value]="city"> {{city | titlecase}}</option>
+      </select>
+    </div>
+
+    <div>
+      <h5>gender</h5>
+      male:
+      <input type="radio"
+             ctrlFormField="gender"
+             value="male">
+      female:
+      <input type="radio"
+             ctrlFormField="gender"
+             value="female">
+      other:
+      <input type="radio"
+             ctrlFormField="gender"
+             value="other">
+    </div>
+
+    <div>
+      <h5>weight</h5>
+      <input type="number"
+             ctrlFormField="weight">
+    </div>
+
+    <div>
+      <h5>hobbies</h5>
+      windsurfing
+      <input type="checkbox"
+             ctrlFormField="hobbies"
+             value="windsurfing">
+      wall climb
+      <input type="checkbox"
+             ctrlFormField="hobbies"
+             value="wallClimb">
+    </div>
+
+    <div>
+      <h5>accept</h5>
+      <input type="checkbox"
+             ctrlFormField="accept"
+             [asBoolean]="true">
+    </div>
+  </div>
+</div>

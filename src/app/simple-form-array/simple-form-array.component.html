@@ -1,0 +1,22 @@
+
+<h1>Form Array</h1>
+<div
+    #formArray="formArray"
+    ctrlFormArray
+    [fieldValue]="formArrayValue"
+    (valueChanged)="formArrayValueChanged($event)"
+    (errorsChanged)="formArrayErrorChanged($event)">
+  <div *ngFor="let row of formArrayValue; let i = index; trackBy: trackByFn">
+    <div ctrlFormGroup>
+      <input ctrlFormField="label"
+             [validators]="validators">
+      <input ctrlFormField="key">
+      <div ctrlFormGroup="blabla">
+        <input ctrlFormField="key2">
+      </div>
+
+      <button (click)="removeRow(i)"> x </button>
+    </div>
+  </div>
+  <button (click)="addRow()"> + </button>
+</div>

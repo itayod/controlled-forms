@@ -1,0 +1,27 @@
+<h1>nested form</h1>
+
+<div ctrlFormGroup
+     [fieldValue]="formVal"
+     (valueChanged)="formValueChanged($event)"
+     (errorsChanged)="formErrorChanged($event)"
+>
+  <div ctrlFormArray="array"
+       #formArray="formArray">
+    <div *ngFor="let _ of formVal?.array; let i = index; trackBy: trackByFn">
+      <div ctrlFormGroup #form="form">
+        <span *ngIf="form?.errors?.firstName?.required">
+          please provide a name.
+        </span>
+        <input ctrlFormField="firstName" [validators]="validators">
+        <input ctrlFormField="lastName">
+        <button (click)="formArray.removeRow(i)"> x</button>
+      </div>
+    </div>
+    <button (click)="formArray.addRow(defaultRow)"> +</button>
+  </div>
+</div>
+<button (click)="saveToLocalStorage()">save</button>
+<br>
+
+Errors: {{formErrors | json}}
+Value: {{formVal | json}}
