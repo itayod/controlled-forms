@@ -1,4 +1,5 @@
 import {ValidatorFunction, ValidationError} from './ng-controlled-forms.models';
+import {isEmpty} from './utils';
 
 function isEmptyInputValue(value: any): boolean {
   // we don't check for string here so it also works with arrays
@@ -112,7 +113,7 @@ export class Validators {
     if (presentValidators.length == 0) { return null; }
 
     return function(value) {
-      return _mergeErrors(_executeValidators(value, presentValidators));
+      return mergeErrorsArray(_executeValidators(value, presentValidators));
     };
   }
 
@@ -128,10 +129,16 @@ function _executeValidators(value, validators: ValidatorFunction[]): any[] {
 }
 
 
-function _mergeErrors(arrayOfErrors: ValidationError[]): ValidationError|null {
+function mergeErrorsArray(arrayOfErrors: ValidationError[]): ValidationError|null {
   const res: {[key: string]: any} =
             arrayOfErrors.reduce((res: ValidationError | null, errors: ValidationError | null) => {
               return errors != null ? {...res !, ...errors} : res !;
             }, {});
   return Object.keys(res).length === 0 ? null : res;
+}
+
+export function mergeErrors(err1: ValidationError | null, err2: ValidationError | null) {
+  const newErrors = {...err1, ...err2};
+
+  return isEmpty(newErrors) ? null : newErrors;
 }

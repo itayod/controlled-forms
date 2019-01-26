@@ -7,8 +7,8 @@ import {Validators} from '../validators';
 import {FormFieldDirective} from './form-field.directive';
 
 @Component({
-  selector: 'al-test-component',
-  template: `<al-custom-field #customElem ctrlFormField [fieldValue]="value" (valueChanged)="valueChanged(value)" [validators]="validators"></al-custom-field>`
+  selector: 'ctrlForm-test-component',
+  template: `<ctrlForm-custom-field #customElem ctrlFormField [fieldValue]="value" (valueChanged)="valueChanged(value)" [validators]="validators"></ctrlForm-custom-field>`
 })
 class TestComponent {
   @ViewChild('customElem') customField;
@@ -22,7 +22,7 @@ class TestComponent {
 }
 
 @Component({
-  selector: 'al-custom-field',
+  selector: 'ctrlForm-custom-field',
   template: '<input [value]="fieldValue" (input)="onInput($event)">',
   providers: [{provide: CUSTOM_FIELD, useExisting:  forwardRef(() => CustomFieldComponent )}],
 })

@@ -1,8 +1,10 @@
-import {Directive, Input, ElementRef, OnDestroy, OnInit, Inject, Self, Optional, SkipSelf, AfterViewInit, ChangeDetectorRef, AfterViewChecked} from '@angular/core';
+import {
+  Directive, Input, ElementRef, OnDestroy, Inject, Self, Optional, SkipSelf,
+  AfterViewInit, ChangeDetectorRef, AfterViewChecked, OnInit
+} from '@angular/core';
 import {FormControl} from '@angular/forms';
 import {Subscription} from 'rxjs';
 import {distinctUntilChanged} from 'rxjs/operators';
-import {FieldAdapter, ValidatorFunction, IFormContainer, ValidationError} from '../ng-controlled-forms.models';
 import {CUSTOM_FIELD, INPUT_TYPES, INPUT_TAG_NAME, FORM_CONTAINER} from '../constants';
 import {BooleanCheckboxFieldAdapter} from '../field-adapters/booleanCheckbox';
 import {CheckboxFieldAdapter} from '../field-adapters/checkbox';
@@ -12,15 +14,15 @@ import {NumberFieldAdapter} from '../field-adapters/number';
 import {RadioFieldAdapter} from '../field-adapters/radio';
 import {SelectFieldAdapter} from '../field-adapters/select';
 import {FormField} from '../form-field';
-import {isEmpty, hasValue} from '../utils';
-import {Validators} from '../validators';
+import {FieldAdapter, IFormContainer, ValidationError} from '../ng-controlled-forms.models';
+import {Validators, mergeErrors} from '../validators';
 
 
 @Directive({
   selector: '[ctrlFormField]',
   exportAs: 'formField'
 })
-export class FormFieldDirective extends FormField implements OnDestroy, AfterViewInit, AfterViewChecked {
+export class FormFieldDirective extends FormField implements OnInit, OnDestroy, AfterViewInit, AfterViewChecked {
 
   private field: FieldAdapter;
   private _ctrlFormField: string;
@@ -34,8 +36,6 @@ export class FormFieldDirective extends FormField implements OnDestroy, AfterVie
 
   @Input() set ctrlFormField (ctrlFormField: string) {
     this._ctrlFormField = ctrlFormField;
-    // support dynamic field name.
-    this.signField(ctrlFormField, this.field);
   }
 
   get ctrlFormField() {
@@ -54,6 +54,10 @@ export class FormFieldDirective extends FormField implements OnDestroy, AfterVie
     return this._value;
   }
 
+  get key() {
+    return this.ctrlFormField;
+  }
+
   constructor(private element: ElementRef,
               private changeDetector: ChangeDetectorRef,
               @Optional() @Self() @Inject(CUSTOM_FIELD) private component: FieldAdapter,
@@ -62,46 +66,44 @@ export class FormFieldDirective extends FormField implements OnDestroy, AfterVie
     super();
   }
 
-  public ngAfterViewInit(): void {
-    if (this.parent && hasValue(this.parent.fieldValue[this.ctrlFormField])) {
-      // first check if the parent hold the initial value.
-      this.fieldValue = this.parent.fieldValue[this.ctrlFormField];
-    }
+  public ngOnInit() {
+    this.signField(this);
+  }
 
-    this.field = this.getFieldAdapter(this.element, this.fieldValue);
+  public ngAfterViewInit(): void {
+
+    this.field = this.fieldAdapterFactory(this.element, this.fieldValue);
     if (this.isCustomField(this.element)) {
       if (this.field.errorsChanged) {
         this.errorsSubscription = this.field.errorsChanged.subscribe(err => {
           this._fieldErrors = err;
 
-          this.updateError(this.mergeErrors(this._errors, this._fieldErrors));
+          this.updateError(mergeErrors(this._errors, this._fieldErrors));
         });
       }
       // set default value after we registered the field so catch the error on first run.
       this.field.fieldValue = this.fieldValue;
     }
-    this.signField(this.ctrlFormField, this.field);
+
     this.onValueChanged(this.field.fieldValue);
 
     this.changeDetector.detectChanges();
 
-    this.field.valueChanged.pipe(
-        distinctUntilChanged()
-    ).subscribe(value => {
+    this.field.valueChanged.subscribe(value => {
       this.updateValue(value);
     });
   }
 
   public ngOnDestroy(): void {
-    this.unSignField(this.field);
+    this.unSignField(this);
     if (this.errorsSubscription) {
       this.errorsSubscription.unsubscribe();
     }
   }
 
   public ngAfterViewChecked(): void {
-    if (this.field.fieldValue !== this._value && !this.isCustomField(this.element)) {
-      this.field.fieldValue = this._value;
+    if (this.field.fieldValue !== this.fieldValue && !this.isCustomField(this.element)) {
+      this.field.fieldValue = this.fieldValue;
     }
   }
 
@@ -115,10 +117,10 @@ export class FormFieldDirective extends FormField implements OnDestroy, AfterVie
       this._errors = Validators.compose(this.validators)(newValue);
     }
 
-    return this.mergeErrors(this._errors, this._fieldErrors);
+    return mergeErrors(this._errors, this._fieldErrors);
   }
 
-  private getFieldAdapter(element: ElementRef, defaultValue) {
+  private fieldAdapterFactory(element: ElementRef, defaultValue) {
     if (this.formControl) {
       return new FormControlAdapter(this.formControl, defaultValue);
     }
@@ -147,17 +149,6 @@ export class FormFieldDirective extends FormField implements OnDestroy, AfterVie
         return new InputFieldAdapter(element.nativeElement, defaultValue);
 
     }
-  }
-
-  signField(fieldName: string, field: FieldAdapter) {
-    if (!field || !this.parent) {return; }
-    // if (!fieldName) {
-    //   console.warn(` you didn't specified field name,
-    //     you do that by supplying your field directive a value (e.g. <input ctrlFormField='name'>, <div al-form="myForm">)
-    //     `
-    //   );
-    // }
-    super.signField(fieldName, field);
   }
 
   private isCustomField(element: ElementRef) {

@@ -1,7 +1,8 @@
-import {Directive, Input, Optional, OnInit, SkipSelf, OnDestroy, forwardRef, Inject, EventEmitter, AfterViewInit, Host} from '@angular/core';
-import {FieldAdapter, IFormContainer, IFormField} from '../ng-controlled-forms.models';
+import {Directive, Input, Optional, OnInit, SkipSelf, OnDestroy, forwardRef,
+  Inject, EventEmitter, Host} from '@angular/core';
 import {FORM_CONTAINER} from '../constants';
 import {FormContainer} from '../form-container';
+import {FieldAdapter, IFormContainer, IFormField} from '../ng-controlled-forms.models';
 import {isEmpty, hasValue} from '../utils';
 
 @Directive({
@@ -12,7 +13,7 @@ import {isEmpty, hasValue} from '../utils';
 export class FormDirective extends FormContainer implements OnInit, OnDestroy {
 
   protected _value = {};
-  private _ctrlForm: string;
+  private _ctrlFormGroup: string;
 
   @Input() set fieldValue(value: any) {
     this._value = value || {};
@@ -23,14 +24,18 @@ export class FormDirective extends FormContainer implements OnInit, OnDestroy {
     return this._value;
   }
 
-  @Input() set ctrlForm(ctrlFormName: string) {
-    this._ctrlForm = ctrlFormName;
-    // support dynamic field name.
-    this.signField(ctrlFormName, this);
+  @Input() set ctrlFormGroup(ctrlFormkey: string) {
+    this._ctrlFormGroup = ctrlFormkey;
+    // support dynamic field key.
+    this.signField(this);
   }
 
-  get ctrlForm(): string {
-    return this._ctrlForm;
+  get ctrlFormGroup(): string {
+    return this._ctrlFormGroup;
+  }
+
+  get key() {
+    return this.ctrlFormGroup;
   }
 
   constructor(@Host() @Optional() @SkipSelf() @Inject(FORM_CONTAINER) public parent: IFormContainer) {
@@ -39,7 +44,7 @@ export class FormDirective extends FormContainer implements OnInit, OnDestroy {
 
   public ngOnInit(): void {
     if (this.parent && !this.parent.hasField(this)) {
-      this.parent.registerField(this, this.ctrlForm, this.errorsChanged, this);
+      this.parent.registerField(this, this.ctrlFormGroup, this.errorsChanged);
     }
   }
 
@@ -49,52 +54,34 @@ export class FormDirective extends FormContainer implements OnInit, OnDestroy {
       formField.errorsSubscription.unsubscribe();
     });
     this.errorsChanged$.unsubscribe();
-    this.unSignField(this.getField());
+    this.unSignField(this);
   }
 
   fieldValueChange(field: string, value: any) {
     this.valueChanged.emit(this.calcNewValue(field, value, this.fieldValue));
   }
 
-  registerField(field: FieldAdapter, fieldName: string, errorsChanged$: EventEmitter<any>, formField: IFormField) {
-    // update then field value for case when from data updated before we registered the field.
-    if (hasValue(this.fieldValue[fieldName])) {
-      field.fieldValue = this.fieldValue[fieldName];
+  removeField(field: IFormField) {
+    super.removeField(field);
+    if (field.errors) {
+      this.fieldErrorChange(field.key, null);
     }
-
-    const valueS = field.valueChanged.subscribe(val => this.fieldValueChange(fieldName, val));
-    const errorsS = errorsChanged$.subscribe(err => {
-      this.fieldErrorChange(fieldName, err);
-    });
-
-    this.formFields.push({name: fieldName, field: field, valueSubscription: valueS, errorsSubscription: errorsS, formField: formField});
-
-    // update the init value of the field with the value of the form.
-    this._value = this.calcNewValue(fieldName, field.fieldValue, this.fieldValue);
   }
 
-  protected calcNewValue(field: string, value: any, formValue) {
-    return {...formValue, [field]: value};
+  protected calcNewValue(field: string, fieldValue: any, formValue: any) {
+    return {...formValue, [field]: fieldValue};
   }
 
-  protected calcNewErrors(errors: Map<string, boolean>, error: Map<string, boolean>, field: string): Map<string, boolean> | null {
+  protected calcNewErrors(errors: {[key: string]: boolean}, error: {[key: string]: boolean}, field: string): {[key: string]: boolean} | null {
     const err = this.mergeFieldErrors(errors, error, field);
-    return isEmpty(err) ? null : err as Map<string, boolean>;
+    return isEmpty(err) ? null : err as {[key: string]: boolean};
   }
 
   protected setFieldsValue(value: {[key: string]: any}) {
-    this.formFields.forEach((fieldRow) => fieldRow.formField.fieldValue = value[fieldRow.name]);
+    this.formFields.forEach((fieldRow) => fieldRow.field.fieldValue = value[fieldRow.key]);
   }
 
-  public getFieldName(): string {
-    return this.ctrlForm;
-  }
-
-  public getField(): FieldAdapter {
-    return this;
-  }
-
-  protected mergeFieldErrors(errorRow: Map<string, boolean>, fieldErrors: Map<string, boolean>, field: string) {
+  protected mergeFieldErrors(errorRow: {[key: string]: boolean}, fieldErrors: {[key: string]: boolean}, field: string) {
     if (errorRow) {
       if (fieldErrors) {
         return {...errorRow, [field]: fieldErrors};
