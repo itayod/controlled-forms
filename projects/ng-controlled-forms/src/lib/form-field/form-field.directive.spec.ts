@@ -6,7 +6,7 @@ import {FormFieldDirective} from './form-field.directive';
 
 @Component({
   selector: 'ctrlForm-test-component',
-  template: '<input ctrlFormFormField [fieldValue]="value" (valueChanged)="valueChanged(value)" [validators]="validators">'
+  template: '<input ctrlFormField [fieldValue]="value" (valueChanged)="valueChanged(value)" [validators]="validators">'
 })
 class TestComponent {
   public value = 'test';

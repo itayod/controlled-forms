@@ -1,7 +1,7 @@
 import {Directive, Input, OnInit, forwardRef, Optional, SkipSelf, Inject, EventEmitter, OnDestroy, Host} from '@angular/core';
-import {FieldAdapter, IFormContainer, IFormField} from '../ng-controlled-forms.models';
 import {FORM_CONTAINER} from '../constants';
 import {FormContainer} from '../form-container';
+import {IFormContainer, IFormField} from '../ng-controlled-forms.models';
 import {isEmpty, compactArray, hasValue} from '../utils';
 
 
@@ -24,14 +24,18 @@ export class FormArrayDirective extends FormContainer implements OnInit, OnDestr
     return this._value;
   }
 
-  @Input() set ctrlFormArray(ctrlFormName: string) {
-    this._ctrlFormArray = ctrlFormName;
-    // support dynamic field name.
-    this.signField(ctrlFormName, this);
+  @Input() set ctrlFormArray(ctrlFormkey: string) {
+    this._ctrlFormArray = ctrlFormkey;
+    // support dynamic field key.
+    this.signField(this);
   }
 
   get ctrlFormArray(): string {
     return this._ctrlFormArray;
+  }
+
+  get key() {
+    return this.ctrlFormArray;
   }
 
   constructor(@Host() @Optional() @SkipSelf() @Inject(FORM_CONTAINER) public parent: IFormContainer) {
@@ -40,7 +44,7 @@ export class FormArrayDirective extends FormContainer implements OnInit, OnDestr
 
   public ngOnInit(): void {
     if (this.parent && !this.parent.hasField(this)) {
-      this.parent.registerField(this, this.ctrlFormArray, this.errorsChanged, this);
+      this.parent.registerField(this, this.ctrlFormArray, this.errorsChanged);
     }
   }
 
@@ -50,7 +54,7 @@ export class FormArrayDirective extends FormContainer implements OnInit, OnDestr
       formField.errorsSubscription.unsubscribe();
     });
     this.errorsChanged$.unsubscribe();
-    this.unSignField(this.getField());
+    this.unSignField(this);
   }
 
   public addRow(rowData: any) {
@@ -63,74 +67,44 @@ export class FormArrayDirective extends FormContainer implements OnInit, OnDestr
     this.valueChanged.emit(value);
   }
 
-  fieldValueChange(value: any, index: number) {
-    this.valueChanged.emit(this.calcNewValue(value, this.fieldValue, index));
+  fieldValueChange(index: number, value: any) {
+    this.valueChanged.emit(this.calcNewValue(index, value, this.fieldValue));
   }
 
-  registerField(field: FieldAdapter, fieldName: string, errorsChanged$: EventEmitter<any>, formField: IFormField) {
-    // update then field value for case when from data updated before we registered the field.
+  registerField(field: IFormField, fieldkey: string, errorsChanged$: EventEmitter<any>) {
     const fieldIndex = this.formFields.length;
-
-    // first declare error subscription for cases that the default value is invalid.
-    const errorsSubs = errorsChanged$.subscribe(err => {
-      this.fieldErrorChange(fieldIndex, err);
-    });
-
-    if (hasValue(this.fieldValue[fieldIndex])) {
-      formField.fieldValue = this.fieldValue[fieldIndex];
-    }
-
-    const valuesSubs = field.valueChanged.subscribe(val => this.fieldValueChange(val, fieldIndex));
-
-    this.formFields.push({
-      name: fieldIndex,
-      field: field,
-      valueSubscription: valuesSubs,
-      errorsSubscription: errorsSubs,
-      formField: formField
-    });
-
-    // update the init value of the field with the value of the form.
-    this._value = this.calcNewValue(field.fieldValue, this.fieldValue, fieldIndex);
+    super.registerField(field, fieldIndex, errorsChanged$);
   }
 
-  calcNewValue(rowValue: any, formValue: Array<any>, index: number) {
+  calcNewValue(index: number, rowValue: any, formValue: Array<any> ) {
     if (index > formValue.length) {
       return formValue.concat([rowValue]);
     }
     return formValue.map((row, aIndex) => index === aIndex ? rowValue : row);
   }
 
-  protected calcNewErrors(errors: Map<string, boolean>, error: Map<string, boolean>, field: string): Map<string, boolean> | null {
+  protected calcNewErrors(errors: {[key: string]: boolean}[], error: {[key: string]: boolean}, field: string): {[key: string]: boolean} | null {
     const err = this.mergeFieldErrors(errors, error, field);
-    return isEmpty(err) ? null : err as Map<string, boolean>;
+    return isEmpty(err) ? null : err as {[key: string]: boolean};
   }
 
   protected setFieldsValue(value: Array<any>) {
     value.forEach((val, i) => {
       if (this.formFields[i]) {
-        this.formFields[i].formField.fieldValue = val;
+        this.formFields[i].field.fieldValue = val;
       }
     });
   }
 
-  public getFieldName(): string {
-    return this.ctrlFormArray;
-  }
-
-  public getField(): FieldAdapter {
-    return this;
-  }
-
-  protected mergeFieldErrors(errorRow: any, fieldErrors: Map<string, boolean>, field: any): any {
-    if (errorRow) {
+  protected mergeFieldErrors(errorRows: {[key: string]: boolean}[], fieldErrors: {[key: string]: boolean}, field: string | number): any {
+    if (errorRows) {
       if (fieldErrors) {
-        const newErrors = [...errorRow];
+        const newErrors = [...errorRows];
         newErrors[field] = fieldErrors;
         return newErrors;
       }
 
-      const filteredErrors = errorRow.map((err, i) => i === field ? fieldErrors : err);
+      const filteredErrors = errorRows.map((err, i) => i === field ? fieldErrors : err);
       return compactArray(filteredErrors).length === 0 ? null : filteredErrors;
     } else {
       if (fieldErrors) {
@@ -143,18 +117,10 @@ export class FormArrayDirective extends FormContainer implements OnInit, OnDestr
   }
 
   removeField(field: IFormField) {
-
-    this.formFields = this.formFields.filter((f) => {
-      if (f.formField === field) {
-        f.valueSubscription.unsubscribe();
-        f.errorsSubscription.unsubscribe();
-        return false;
-      }
-      return true;
-    });
+    super.removeField(field);
     let errors = [];
     this.formFields.forEach(f => {
-     errors = this.calcNewErrors(<any>errors, f.formField.errors, <any>f.name) as any;
+     errors = this.calcNewErrors(<any>errors, f.field.errors, <any>f.key) as any;
     });
     this.errorsChanged.emit(<any>errors);
   }

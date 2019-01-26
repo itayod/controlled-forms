@@ -18,13 +18,13 @@ export interface IFormField<T = any> extends FieldAdapter {
   parent: IFormContainer;
   errors: any;
   validators: Array<ValidatorFunction>;
+  key: string;
 }
 
 export interface IFormContainer<T = any> extends IFormField {
   hasField: (field: IFormField) => boolean;
   removeField: (field: IFormField) => void;
-  registerField: (field: IFormField, fieldName: string, errorsChanged$: EventEmitter<any>, IFormField) => void;
-  updateError: (fieldName: string, errors: Map<string, boolean>) => void;
+  registerField: (field: IFormField, fieldkey: string, errorsChanged$: EventEmitter<any>) => void;
 }
 
 
